@@ -2,114 +2,139 @@ import numpy as np
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from sklearn.linear_model import Perceptron as SklearnPerceptron
+import math
+import seaborn as sns
 
-class Perceptron:
-    def __init__(self, max_iter, dimensions, learning_rate=0.1):
-        self.weights = np.random.rand(dimensions)
-        self.bias = np.random.rand()
-        self.error = None
-        self.min_error = sys.maxsize
-        self.max_iter = max_iter
-        self.min_weights = None
-        self.min_bias = None
+class KohonenNetwork:
+    def __init__(self, input_size, grid_size, learning_rate=0.01, radius=1.0):
+        self.input_size = input_size
+        self.grid_size = grid_size
         self.learning_rate = learning_rate
+        self.weights = np.random.rand(grid_size**2, input_size).reshape(grid_size, grid_size, input_size)
+        self.radius = radius
 
-    def compute_excitement(self, value):
-        return sum(value * self.weights) + self.bias
+    def train(self, data, epochs):
+        for epoch in range(epochs):
+            for input_value in data:
+                winner = self.get_winner(input_value)
+                self.update_weights(input_value, winner)
 
-    def compute_activation(self, value):
-        return 1 if self.compute_excitement(value) >= 0 else -1
+    def get_winner(self, input_value):
+        min_similarity = sys.maxsize
+        winner = None
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                similarity = self.get_similarity(self.weights[i][j], input_value)
+                if similarity < min_similarity:
+                    min_similarity = similarity
+                    winner = i, j
+        return winner
 
-    def train(self, data_input, expected_output):
-        i = 0
-        weight_history = []
-        error_history = []
-        bias_history = []
-        weight_history.append(self.weights)
-        error_history.append(self.min_error)
-        bias_history.append(self.bias)
-        while self.min_error > 0 and i < self.max_iter:
-            mu = np.random.randint(0, len(data_input))
-            value = data_input[mu]
-            activation = self.compute_activation(value)
-            base_delta = self.learning_rate * (expected_output[mu] - activation)
+    def get_neighbours(self, winner):
+        neighbours = []
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                distance = math.sqrt((winner[0]-i)**2 + (winner[1]-j)**2)
+                if distance <= self.radius:
+                    neighbours.append((i, j))
+        return neighbours
 
-            self.bias = self.bias + base_delta
-            self.weights = self.weights + base_delta * value
+    def get_similarity(self, x, w):                                   
+        return np.linalg.norm(x - w)
 
-            # error = sum([abs(expected_output[mu] - self.compute_activation(data_input[mu])) for mu in range(0, len(data_input))])
-            error = 0.5*sum((expected_output[mu] - self.compute_activation(data_input[mu]))**2 for mu in range(0, len(data_input)))
 
-            weight_history.append(self.weights)
-            bias_history.append(self.bias)
-            error_history.append(error)
-            if error < self.min_error:
-                self.min_error = error
-                self.min_weights = self.weights
-                self.min_bias = self.bias
-            i += 1
-
-        print("Iterations: ", i)
-        print("Error:", self.min_error)
-        return self.min_weights, self.min_bias, weight_history, error_history, bias_history
-
-def main():
-    example_data_input = np.array([[-1, 1], [1, -1], [-1, -1], [1, 1]])
-    example_data_output = np.array([-1, -1, -1, 1])
-    perceptron = Perceptron(1000, len(example_data_input[0]), 0.01)
-
-    weights, bias, weight_history, error_history, bias_history = perceptron.train(example_data_input, example_data_output)
-    print("Weights: ", weights, "Bias: ", bias)
-
-    df = pd.DataFrame({
-        'x1': example_data_input[:, 0],
-        'x2': example_data_input[:, 1],
-        'output': example_data_output
-    })
-
-    fig, ax = plt.subplots()
-    line, = ax.plot([], [], lw=2)
-    ax.scatter(df['x1'], df['x2'], c=df['output'])
-
-    ax.set_xlim(-1.1, 1.1)
-    ax.set_ylim(-1.1, 1.1)
-
-    fps = 30  # frames per second
-    delay_seconds = 2
-    extra_frames = fps * delay_seconds
-    weight_history_extended = weight_history + [weight_history[-1]] * extra_frames
-    error_history_extended = error_history + [error_history[-1]] * extra_frames
-    bias_history_extended = bias_history + [bias_history[-1]] * extra_frames
+    def update_weights(self, input_data, winner):
+        neighbours = self.get_neighbours(winner)
+        for neighbour in neighbours:
+            delta = np.array(np.subtract(input_data, self.weights[neighbour]))* self.learning_rate
+            self.weights[neighbour] = np.add(self.weights[neighbour], delta)
     
-    def init():
-        line.set_data([], [])
-        return line,
 
-    def update(frame):
-        index = frame % len(weight_history_extended)
-        local_weights = weight_history_extended[index]
-        a = -local_weights[0] / local_weights[1]
-        xx = np.linspace(-1, 1)
-        yy = a * xx - (bias_history_extended[index] / local_weights[1])
-        ax.set_title('Error: ' + str(error_history_extended[index]))
-        line.set_data(xx, yy)
-        return line,
+    def visualize(self):
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                print(f'{self.weights[i][j]}', end=" ")
+            print("\n")
+            
+    def get_count_per_neuron(self, data):
+        count_per_neuron = np.zeros((self.grid_size, self.grid_size))
+        for input_value in data:
+            winner = self.get_winner(input_value)
+            count_per_neuron[winner] += 1
+        return count_per_neuron
 
-    ani = animation.FuncAnimation(fig, update, frames=len(weight_history_extended), init_func=init, blit=True, interval=100, repeat_delay=1000)
-    # ani.save('results/result_animation.gif', writer='imagemagick', fps=fps)
-    # ani.save('results/result_animation.mp4', writer='ffmpeg', fps=fps)
+    def get_countries_per_neuron(self, data, countries):
+        countries_per_neuron = np.zeros((self.grid_size, self.grid_size), dtype=object)
+        for i, input_value in enumerate(data):
+            winner = self.get_winner(input_value)
+            if countries_per_neuron[winner] == 0:
+                countries_per_neuron[winner] = countries[i]
+            else:
+                countries_per_neuron[winner] = countries_per_neuron[winner] + ', ' + countries[i]
+        return countries_per_neuron
+    
+    def get_data_per_neuron(self, data):
+        return self.weights
 
-    plt.figure()
-    a = -weights[0] / weights[1]
-    xx = np.linspace(-1, 1)
-    yy = a * xx - bias / weights[1]
+   
+def main():
+    data = pd.read_csv('europe.csv')
+    data_input = data.values
 
-    # Plot the line along with the data
-    plt.plot(xx, yy, 'k-')
-    plt.scatter(df['x1'], df['x2'], c=df['output'])
+    # Remove first column
+
+    data_input = np.delete(data_input, 0, axis=1)
+
+    network = KohonenNetwork(input_size=len(data_input[0]), grid_size=4, learning_rate=0.01, radius=1.0)
+
+    # network.train(data_input, 1000)
+
+    count_per_neuron = network.get_count_per_neuron(data_input)
+    data_per_neuron = network.get_data_per_neuron(data_input)
+
+    countries_per_neuron = network.get_countries_per_neuron(data_input, data['Country'].values)
+
+    flattened_data = []
+    for i in range(data_per_neuron.shape[0]):
+        for j in range(data_per_neuron.shape[1]):
+            flattened_data.append([i, j, *data_per_neuron[i][j]])
+    
+    df = pd.DataFrame(flattened_data, columns=['Row', 'Column', 'Area', 'GDP', 'Inflation', 'Life.expect', 'Military', 'Pop.growth', 'Unemployment'])
+
+    matrixes = {
+        'Area': 'Area',
+        'GDP': 'GDP',
+        'Inflation': 'Inflation',
+        'Life.expect': 'Life.expect',
+        'Military': 'Military',
+        'Pop.growth': 'Pop.growth',
+        'Unemployment': 'Unemployment'
+    }
+
+    for key in matrixes.keys():
+        matrix = np.zeros((network.grid_size, network.grid_size))
+        for i in range(data_per_neuron.shape[0]):
+            for j in range(data_per_neuron.shape[1]):
+                matrix[i][j] = df[(df['Row'] == i) & (df['Column'] == j)][key].values[0]
+        
+        matrixes[key] = matrix
+
+    # countries_per_neuron = np.array(countries_per_neuron)
+    # countries_per_neuron = [[', '.join(countries_per_neuron[i][j]) for j in range(network.grid_size)] for i in range(network.grid_size)]
+    sns.heatmap(count_per_neuron, annot=countries_per_neuron, cmap='coolwarm', fmt='s')
+    plt.title('Cantidad de datos por neurona')
+    plt.xlabel('Neurona')
+    plt.ylabel('Neurona')
+
+    for key in matrixes.keys():
+        plt.figure()
+        sns.heatmap(matrixes[key], annot=True, fmt='0.2f', cmap='coolwarm')
+        plt.title(f'{key} por neurona')
+        plt.xlabel('Neurona')
+        plt.ylabel('Neurona')
+
     plt.show()
-
+    
+    
 if __name__ == "__main__":
     main()
