@@ -6,18 +6,20 @@ import math
 import seaborn as sns
 
 class KohonenNetwork:
-    def __init__(self, input_size, grid_size, learning_rate=0.01, radius=1.0):
+    def __init__(self, input_size, grid_size, learning_rate=1, radius=1.0, initial_weights=None):
         self.input_size = input_size
         self.grid_size = grid_size
         self.learning_rate = learning_rate
-        self.weights = np.random.rand(grid_size**2, input_size).reshape(grid_size, grid_size, input_size)
+        self.weights = np.random.rand(grid_size**2, input_size).reshape(grid_size, grid_size, input_size) if initial_weights is None else initial_weights
         self.radius = radius
 
     def train(self, data, epochs):
-        for epoch in range(epochs):
+        for epoch in range(1, epochs+1):
             for input_value in data:
                 winner = self.get_winner(input_value)
-                self.update_weights(input_value, winner)
+                self.update_weights(input_value, winner, epoch)
+
+            self.radius = self.radius_decay(epoch, epochs)
 
     def get_winner(self, input_value):
         min_similarity = sys.maxsize
@@ -39,14 +41,19 @@ class KohonenNetwork:
                     neighbours.append((i, j))
         return neighbours
 
-    def get_similarity(self, x, w):                                   
+    def get_similarity(self, x, w):   
+        x = normalize(x)
+        w = normalize(w)
         return np.linalg.norm(x - w)
 
+    def radius_decay(self, current_epoch, epochs):
+        return self.radius * math.exp(-current_epoch * math.log(self.radius) / epochs)
 
-    def update_weights(self, input_data, winner):
+
+    def update_weights(self, input_data, winner, epoch):
         neighbours = self.get_neighbours(winner)
         for neighbour in neighbours:
-            delta = np.array(np.subtract(input_data, self.weights[neighbour]))* self.learning_rate
+            delta = np.array(np.subtract(input_data, self.weights[neighbour]))* (self.learning_rate / epoch)
             self.weights[neighbour] = np.add(self.weights[neighbour], delta)
     
 
@@ -76,7 +83,9 @@ class KohonenNetwork:
     def get_data_per_neuron(self, data):
         return self.weights
 
-   
+def normalize(data):
+    return (data - np.mean(data)) / np.std(data)
+
 def main():
     data = pd.read_csv('europe.csv')
     data_input = data.values
@@ -85,9 +94,12 @@ def main():
 
     data_input = np.delete(data_input, 0, axis=1)
 
-    network = KohonenNetwork(input_size=len(data_input[0]), grid_size=4, learning_rate=0.01, radius=1.0)
+    # for i in range(len(data_input)):
+    #    data_input[i] = normalize(data_input[i])
 
-    # network.train(data_input, 1000)
+    network = KohonenNetwork(input_size=len(data_input[0]), grid_size=4, learning_rate=1, radius=math.sqrt(32), initial_weights=data_input[:4*4].reshape(4, 4, len(data_input[0])))
+
+    network.train(data_input, 1000)
 
     count_per_neuron = network.get_count_per_neuron(data_input)
     data_per_neuron = network.get_data_per_neuron(data_input)
@@ -119,10 +131,21 @@ def main():
         
         matrixes[key] = matrix
 
-    # countries_per_neuron = np.array(countries_per_neuron)
-    # countries_per_neuron = [[', '.join(countries_per_neuron[i][j]) for j in range(network.grid_size)] for i in range(network.grid_size)]
-    sns.heatmap(count_per_neuron, annot=countries_per_neuron, cmap='coolwarm', fmt='s')
-    plt.title('Cantidad de datos por neurona')
+    for j in range(countries_per_neuron.shape[1]):
+        for i in range(countries_per_neuron.shape[0]):
+            countries_per_neuron[i][j] = countries_per_neuron[i][j].replace(',', '\n')
+
+    # Create a heatmap
+    sns.heatmap(count_per_neuron, annot=countries_per_neuron, fmt="", cmap='coolwarm')
+    plt.title('Paises por neurona')
+    plt.xlabel('Neurona')
+    plt.ylabel('Neurona')
+
+    plt.figure()
+
+
+    sns.heatmap(count_per_neuron, annot=True, cmap='coolwarm', fmt='0.0f')
+    plt.title('Cantidad de paises por neurona')
     plt.xlabel('Neurona')
     plt.ylabel('Neurona')
 
