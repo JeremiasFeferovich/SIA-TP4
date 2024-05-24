@@ -5,18 +5,7 @@ import matplotlib.pyplot as plt
 import math
 import seaborn as sns
 import copy
-
-class Normalizer:
-    def __init__(self, data):
-        self.mean = np.mean(data)
-        self.std = np.std(data)
-
-    def normalize(self, data):
-        return (data - self.mean) / self.std
-    
-    def denormalize(self, data):
-        return data * self.std + self.mean
-
+from normalizer import Normalizer
 
 class KohonenNetwork:
     def __init__(self, input_size, grid_size, learning_rate=1, radius=1.0, initial_weights=None):
@@ -110,10 +99,11 @@ def main():
     # Remove first column
     data_input = np.delete(data_input, 0, axis=1)
 
+    # TODO check normalization
     normalizers = []
 
     for i in range(len(data_input[0])):
-        normalizers.append(Normalizer(data_input[i]))
+        normalizers.append(Normalizer(data_input[:, i]))
         data_input[:, i] = normalizers[i].normalize(data_input[:, i])
 
     grid_size = 4
