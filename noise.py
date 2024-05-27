@@ -14,6 +14,23 @@ def salt_and_pepper_noise(vector, intensity=0.1, shape=(5, 5)):
 
     return noise_matrix.flatten()
 
+def noisify(vector, qty_to_change, shape=(5,5)):
+    noise_matrix = np.array(vector).reshape(shape[0], shape[1])
+    changed = set()
+    for _ in range(qty_to_change):
+        i = np.random.randint(0, shape[0])
+        j = np.random.randint(0, shape[1])
+        while (i,j) in changed:
+            i = np.random.randint(0, shape[0])
+            j = np.random.randint(0, shape[1])
+        if noise_matrix[i][j] == 1:
+            noise_matrix[i][j] = -1
+        else:
+            noise_matrix[i][j] = 1
+        changed.add((i,j))
+
+    return noise_matrix.flatten()
+
 def gaussian_noise(vector, intensity=0.1, shape=(5, 5)):
     noise_matrix = np.array(vector).reshape(shape[0], shape[1])
 

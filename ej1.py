@@ -8,6 +8,8 @@ from normalizer import Normalizer
 import numpy as np
 import math
 import sys
+from sklearn.decomposition import PCA
+
 
 class KohonenNetwork:
     def __init__(self, input_size, grid_size, learning_rate=1, radius=1.0, initial_weights=None):
@@ -148,7 +150,6 @@ def main():
     # Remove first column
     data_input = np.delete(data_input, 0, axis=1)
 
-    # TODO check normalization
     normalizers = []
 
     for i in range(len(data_input[0])):

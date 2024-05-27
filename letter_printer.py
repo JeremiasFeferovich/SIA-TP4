@@ -14,7 +14,7 @@ def create_letter_plot(letter, ax, cmap='Blues'):
 def print_letters_line(letters, cmap='Blues', cmaps=[], ax=None):
     if ax is None:
         fig, ax = plt.subplots(1, len(letters))
-        fig.set_dpi(360)
+        fig.set_dpi(1000)
     if not cmaps:
         cmaps = [cmap]*len(letters)
     if len(cmaps) != len(letters):
@@ -45,6 +45,8 @@ def test_front():
     fig, ax = plt.subplots(len(letters)//n, n)
     for i, letter_group in enumerate([letters[i*n:(i+1)*n] for i in range(len(letters)//n)]):
         print_letters_line(letter_group, ax=ax[i])
+
+    plt.savefig('results/letters.png', dpi=1000, bbox_inches='tight')
     plt.show()
 
 def main():
