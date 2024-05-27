@@ -22,7 +22,7 @@ class HopfieldNetwork:
 
         pattern_history = [pattern]
 
-        while True:
+        while iterations < 10:
             new_pattern = np.sign(np.dot(self.weights, pattern))
 
             if np.array_equal(new_pattern, pattern):
@@ -65,8 +65,8 @@ def main():
     chosen_group_letters = df.iloc[0]['Grupo']
     chosen_group = np.array([v for k, v in flat_letters.items() if k in chosen_group_letters])
     copied_group = np.copy(chosen_group)
-    # noisy_group_1 = np.array([salt_and_pepper_noise(v, intensity=0.3, shape=(5,5)) for v in copied_group])
-    noisy_group_1 = np.array([gaussian_noise(v, intensity=1, shape=(5,5)) for v in copied_group])
+    noisy_group_1 = np.array([salt_and_pepper_noise(v, intensity=0.2, shape=(5,5)) for v in copied_group])
+    # noisy_group_1 = np.array([gaussian_noise(v, intensity=2, shape=(5,5)) for v in copied_group])
     hopfield_network = HopfieldNetwork(chosen_group)
 
     chosen_correctly = []
@@ -106,9 +106,6 @@ def main():
         if not found:
             print(f'Should be: {chosen_group_letters[i]}. Letter not found.')
             chosen_correctly.append(False)
-
-   
-
 
     print_group(chosen_group, 'Original group')
     print_group(noisy_group_1, 'Noisy group', chosen_correctly)

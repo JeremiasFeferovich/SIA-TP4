@@ -48,3 +48,4 @@ def print_group(group, title, individual_titles=None, dims=(5,5)):
         axs[i].axis('off')
     
     fig.suptitle(title)
+    plt.savefig(f'results/{title}.png', dpi=300, bbox_inches='tight')

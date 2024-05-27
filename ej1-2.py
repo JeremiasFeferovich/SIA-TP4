@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from normalizer import Normalizer
-
+from sklearn.decomposition import PCA
 
 class OjaNeuron:
     def __init__(self, max_iter, dimensions, learning_rate=1e-3):
@@ -37,6 +37,13 @@ def main():
 
     oja_neuron = OjaNeuron(max_iter=1000, dimensions=len(standarized_data[0]), learning_rate=1e-3)
     weights = oja_neuron.train(standarized_data)
+
+    pca = PCA(n_components=2)
+    pca.fit(standarized_data)
+    
+
+    print(f'Difference: {pca.components_[0]+weights}')
+    print(f'Mean difference: {np.mean(pca.components_[0]+weights)}')
 
     print(weights)
 
