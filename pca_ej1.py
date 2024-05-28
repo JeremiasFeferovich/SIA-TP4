@@ -48,7 +48,7 @@ def main():
     plt.savefig('results/interpolated_colors.png')
 
     countries_matrix = [
-        [["Bulgaria", "Estonia", "Hungary", "Latvia", "Lithuania", "Ukrania"], ["Slovakia"], ["Belgium, Czech Republic"], ["Austria", "Denmark", "Luxembourg", "Netherlands", "Switzerland"]],
+        [["Bulgaria", "Estonia", "Hungary", "Latvia", "Lithuania", "Ukraine"], ["Slovakia"], ["Belgium, Czech Republic"], ["Austria", "Denmark", "Luxembourg", "Netherlands", "Switzerland"]],
         [["Croatia", "Poland"], ["Slovenia"], [], ["Iceland"]],
         [["Greece"], ["Portugal"], [], ["Ireland"]],
         [["Finland", "Germany", "Norway", "United Kingdom"], [], ["Italy"], ["Spain", "Sweden"]]
